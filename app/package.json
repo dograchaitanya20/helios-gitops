@@ -1,0 +1,14 @@
+{
+  "name": "helios-api",
+  "version": "1.0.0",
+  "description": "Sample deployable service for the GitOps CI/CD pipeline",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "prom-client": "^15.1.3"
+  }
+}

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helios · Deploy Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151a;
+    --panel:#1a1f27;
+    --panel-2:#20262f;
+    --border:#2a3140;
+    --text:#e7e9ec;
+    --dim:#8b93a3;
+    --dimmer:#5c6472;
+    --amber:#e8a33d;
+    --blue:#5aa9e6;
+    --red:#e35b5b;
+    --green:#4fbf8b;
+    --font-head:'Space Grotesk',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, rgba(232,163,61,0.05), transparent 45%),
+      radial-gradient(ellipse at bottom right, rgba(90,169,230,0.05), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-mono);
+    min-height:100vh;
+    padding:28px;
+  }
+  .wrap{max-width:1200px;margin:0 auto;}
+
+  /* ---- header ---- */
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom:1px solid var(--border); padding-bottom:18px; margin-bottom:24px;
+    flex-wrap:wrap; gap:16px;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-mark{
+    width:34px;height:34px;border-radius:8px;
+    background:linear-gradient(135deg,var(--amber),#c97e1f);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-head);font-weight:700;color:#191308;font-size:15px;
+  }
+  h1{font-family:var(--font-head);font-weight:600;font-size:20px;letter-spacing:-0.01em;}
+  .subtitle{color:var(--dim);font-size:12px;margin-top:2px;}
+  .env-pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--panel); border:1px solid var(--border);
+    padding:8px 14px; border-radius:20px; font-size:12px; color:var(--dim);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+  .dot.warn{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+  .dot.err{background:var(--red);box-shadow:0 0 8px var(--red);}
+
+  /* ---- controls ---- */
+  .controls{display:flex; gap:10px; margin-bottom:26px; flex-wrap:wrap;}
+  button{
+    font-family:var(--font-mono); font-size:12.5px; font-weight:500;
+    padding:10px 18px; border-radius:8px; cursor:pointer;
+    border:1px solid var(--border); background:var(--panel); color:var(--text);
+    transition:all .15s ease; letter-spacing:0.01em;
+  }
+  button:hover{border-color:var(--dimmer); background:var(--panel-2);}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button.primary{background:var(--amber); color:#1a1204; border-color:var(--amber); font-weight:600;}
+  button.primary:hover{background:#f0ac48;}
+  button.danger{background:transparent; color:var(--red); border-color:rgba(227,91,91,0.4);}
+  button.danger:hover{background:rgba(227,91,91,0.08);}
+
+  /* ---- pipeline (signature element) ---- */
+  .pipeline-panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:28px 24px 22px; margin-bottom:20px; overflow-x:auto;
+  }
+  .panel-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--dimmer);
+    margin-bottom:18px; display:flex; justify-content:space-between;
+  }
+  .track{position:relative; min-width:820px; height:118px;}
+  .track-line{
+    position:absolute; top:34px; left:34px; right:34px; height:2px;
+    background:var(--border);
+  }
+  .track-progress{
+    position:absolute; top:34px; left:34px; height:2px; width:0%;
+    background:linear-gradient(90deg,var(--amber),var(--blue));
+    transition:width .5s ease; box-shadow:0 0 10px rgba(232,163,61,0.5);
+  }
+  .stages{position:relative; display:flex; justify-content:space-between;}
+  .stage{display:flex; flex-direction:column; align-items:center; width:110px; text-align:center;}
+  .node{
+    width:36px; height:36px; border-radius:50%; background:var(--panel-2);
+    border:2px solid var(--border); display:flex; align-items:center; justify-content:center;
+    font-size:14px; z-index:2; transition:all .3s ease;
+  }
+  .node.active{border-color:var(--amber); box-shadow:0 0 14px rgba(232,163,61,0.5); animation:pulse 1s infinite;}
+  .node.done{border-color:var(--green); background:rgba(79,191,139,0.12); color:var(--green);}
+  .node.fail{border-color:var(--red); background:rgba(227,91,91,0.15); color:var(--red);}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+  .stage-label{font-size:11px; color:var(--dim); margin-top:10px; line-height:1.4;}
+  .stage-sub{font-size:9.5px; color:var(--dimmer); margin-top:2px;}
+
+  /* ---- grid ---- */
+  .grid{display:grid; grid-template-columns:1.3fr 1fr; gap:20px; margin-bottom:20px;}
+  @media (max-width:860px){.grid{grid-template-columns:1fr;}}
+
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px;}
+  .metric-row{display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap;}
+  .metric{flex:1; min-width:120px; background:var(--panel-2); border:1px solid var(--border); border-radius:9px; padding:12px 14px;}
+  .metric-label{font-size:10px; color:var(--dimmer); text-transform:uppercase; letter-spacing:0.08em;}
+  .metric-value{font-family:var(--font-head); font-size:24px; font-weight:600; margin-top:4px;}
+  .metric-value.good{color:var(--green);}
+  .metric-value.bad{color:var(--red);}
+  .metric-value.info{color:var(--blue);}
+
+  svg#chart{width:100%; height:150px; display:block;}
+  .chart-legend{display:flex; gap:16px; margin-top:10px; font-size:10.5px; color:var(--dim);}
+  .legend-item{display:flex; align-items:center; gap:6px;}
+  .legend-dot{width:8px;height:8px;border-radius:2px;}
+
+  .log{
+    font-size:11.5px; line-height:1.9; max-height:220px; overflow-y:auto;
+    color:var(--dim);
+  }
+  .log-line{display:flex; gap:8px;}
+  .log-time{color:var(--dimmer); flex-shrink:0;}
+  .log-tag{flex-shrink:0; padding:0 5px; border-radius:3px; font-size:9.5px; height:16px; display:flex; align-items:center;}
+  .tag-info{background:rgba(90,169,230,0.15); color:var(--blue);}
+  .tag-ok{background:rgba(79,191,139,0.15); color:var(--green);}
+  .tag-err{background:rgba(227,91,91,0.18); color:var(--red);}
+  .tag-warn{background:rgba(232,163,61,0.15); color:var(--amber);}
+
+  table{width:100%; border-collapse:collapse; font-size:11.5px;}
+  th{text-align:left; color:var(--dimmer); font-weight:500; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; padding-bottom:10px; border-bottom:1px solid var(--border);}
+  td{padding:10px 0; border-bottom:1px solid var(--border); color:var(--dim);}
+  td.sha{color:var(--text); font-weight:500;}
+  .status-badge{padding:2px 8px; border-radius:10px; font-size:10px; font-weight:500;}
+  .status-live{background:rgba(79,191,139,0.15); color:var(--green);}
+  .status-rolled{background:rgba(227,91,91,0.15); color:var(--red);}
+
+  footer{margin-top:24px; text-align:center; color:var(--dimmer); font-size:11px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">CR</div>
+      <div>
+        <h1>Helios Deploy Control</h1>
+        <div class="subtitle">GitOps pipeline · ArgoCD · Kubernetes · Prometheus</div>
+      </div>
+    </div>
+    <div class="env-pill"><span class="dot" id="envDot"></span><span id="envText">production · healthy</span></div>
+  </header>
+
+  <div class="controls">
+    <button class="primary" id="btnDeploy">▶ Trigger deploy</button>
+    <button class="danger" id="btnBadDeploy">⚠ Simulate bad deploy</button>
+    <button id="btnReset">↺ Reset</button>
+  </div>
+
+  <div class="pipeline-panel">
+    <div class="panel-label"><span>Pipeline</span><span id="pipelineStatus">idle</span></div>
+    <div class="track">
+      <div class="track-line"></div>
+      <div class="track-progress" id="trackProgress"></div>
+      <div class="stages" id="stages"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="panel-label"><span>Live metrics — helios-api</span><span id="chartWindow">last 60s</span></div>
+      <div class="metric-row">
+        <div class="metric"><div class="metric-label">Error rate</div><div class="metric-value good" id="mErr">0.4%</div></div>
+        <div class="metric"><div class="metric-label">p95 latency</div><div class="metric-value info" id="mLat">118ms</div></div>
+        <div class="metric"><div class="metric-label">Req/s</div><div class="metric-value" id="mReq">42</div></div>
+        <div class="metric"><div class="metric-label">Pods</div><div class="metric-value good" id="mPods">3/3</div></div>
+      </div>
+      <svg id="chart" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
+      <div class="chart-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Error rate %</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>p95 latency (×10ms)</div>
+        <div class="legend-item" style="color:var(--red)" id="thresholdNote">— rollback threshold: 5%</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="panel-label"><span>Event log</span><span id="logCount">0 events</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="panel-label"><span>Deploy history</span><span>ArgoCD sync revisions</span></div>
+    <table>
+      <thead><tr><th>Time</th><th>Commit</th><th>Image tag</th><th>Trivy scan</th><th>Status</th></tr></thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+
+  <footer>Simulated telemetry for demo purposes — wire PROMETHEUS_URL and the ArgoCD API in rollback-controller/rollback.js to replace with live data.</footer>
+</div>
+
+<script>
+const STAGES = [
+  {id:'git', label:'Git push', sub:'main', icon:'⌥'},
+  {id:'test', label:'Test', sub:'node --test', icon:'✓'},
+  {id:'build', label:'Build', sub:'docker build', icon:'▣'},
+  {id:'scan', label:'Trivy scan', sub:'CRITICAL,HIGH', icon:'◈'},
+  {id:'push', label:'Push', sub:'ghcr.io', icon:'↑'},
+  {id:'sync', label:'ArgoCD sync', sub:'auto + self-heal', icon:'⟳'},
+  {id:'watch', label:'Watch', sub:'180s window', icon:'◔'},
+];
+
+const stagesEl = document.getElementById('stages');
+STAGES.forEach(s=>{
+  const div = document.createElement('div');
+  div.className='stage';
+  div.innerHTML = `<div class="node" id="node-${s.id}">${s.icon}</div><div class="stage-label">${s.label}</div><div class="stage-sub">${s.sub}</div>`;
+  stagesEl.appendChild(div);
+});
+
+const logEl = document.getElementById('log');
+const historyBody = document.getElementById('historyBody');
+let logCount = 0;
+let running = false;
+let deployCount = 0;
+
+function ts(){
+  const d = new Date();
+  return d.toTimeString().slice(0,8);
+}
+
+function log(tag, tagClass, msg){
+  logCount++;
+  document.getElementById('logCount').textContent = logCount + ' events';
+  const line = document.createElement('div');
+  line.className='log-line';
+  line.innerHTML = `<span class="log-time">${ts()}</span><span class="log-tag ${tagClass}">${tag}</span><span>${msg}</span>`;
+  logEl.prepend(line);
+}
+
+function setEnv(state){
+  const dot = document.getElementById('envDot');
+  const text = document.getElementById('envText');
+  dot.className = 'dot' + (state==='warn' ? ' warn' : state==='err' ? ' err' : '');
+  text.textContent = state==='warn' ? 'production · deploying' : state==='err' ? 'production · rolled back' : 'production · healthy';
+}
+
+function resetNodes(){
+  STAGES.forEach(s=>{
+    const n = document.getElementById('node-'+s.id);
+    n.className = 'node';
+    n.textContent = s.icon;
+  });
+  document.getElementById('trackProgress').style.width='0%';
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function runPipeline(shouldFail){
+  if(running) return;
+  running = true;
+  document.getElementById('btnDeploy').disabled = true;
+  document.getElementById('btnBadDeploy').disabled = true;
+  resetNodes();
+  setEnv('warn');
+  document.getElementById('pipelineStatus').textContent = 'running';
+
+  const sha = Math.random().toString(16).slice(2,9);
+  deployCount++;
+  log('INFO','tag-info', `Push to main detected — <b>${sha}</b>`);
+
+  for(let i=0;i<STAGES.length;i++){
+    const s = STAGES[i];
+    const n = document.getElementById('node-'+s.id);
+    n.className='node active';
+    document.getElementById('trackProgress').style.width = `${(i/(STAGES.length-1))*100}%`;
+
+    if(s.id==='watch'){
+      // simulate the rollback watch window compressed for demo purposes
+      log('INFO','tag-info', `Rollback controller watching error rate for ${shouldFail?'⚠ elevated':'stable'} signal...`);
+      await sleep(1400);
+      if(shouldFail){
+        n.className='node fail';
+        setEnv('err');
+        document.getElementById('pipelineStatus').textContent = 'rolled back';
+        log('ERR','tag-err', `Error rate crossed 5% threshold — <b>auto-rollback triggered</b> via ArgoCD API`);
+        await sleep(500);
+        log('WARN','tag-warn', `Reverted helios-api to previous synced revision`);
+        addHistoryRow(sha, shouldFail);
+        running=false;
+        document.getElementById('btnDeploy').disabled=false;
+        document.getElementById('btnBadDeploy').disabled=false;
+        startFailedMetrics();
+        return;
+      } else {
+        n.className='node done';
+        log('OK','tag-ok', `Deploy healthy after watch window — no rollback needed`);
+      }
+    } else {
+      await sleep(500 + Math.random()*300);
+      n.className='node done';
+      log('OK','tag-ok', `${s.label} completed`);
+    }
+  }
+
+  document.getElementById('trackProgress').style.width='100%';
+  setEnv('ok');
+  document.getElementById('pipelineStatus').textContent = 'idle';
+  addHistoryRow(sha, false);
+  running=false;
+  document.getElementById('btnDeploy').disabled=false;
+  document.getElementById('btnBadDeploy').disabled=false;
+  resumeNormalMetrics();
+}
+
+function addHistoryRow(sha, failed){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${ts()}</td><td class="sha">${sha}</td><td>ghcr.io/.../helios-api:${sha}</td><td style="color:var(--green)">passed</td>
+    <td><span class="status-badge ${failed?'status-rolled':'status-live'}">${failed?'rolled back':'live'}</span></td>`;
+  historyBody.prepend(tr);
+}
+
+document.getElementById('btnDeploy').addEventListener('click', ()=>runPipeline(false));
+document.getElementById('btnBadDeploy').addEventListener('click', ()=>runPipeline(true));
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  resetNodes(); setEnv('ok'); document.getElementById('pipelineStatus').textContent='idle';
+  resumeNormalMetrics();
+});
+
+// ---- live-looking metrics chart ----
+const chart = document.getElementById('chart');
+const N = 40;
+let errSeries = Array(N).fill(0.4);
+let latSeries = Array(N).fill(11.8);
+let failMode = false;
+
+function resumeNormalMetrics(){ failMode = false; }
+function startFailedMetrics(){ failMode = true; }
+
+function tickMetrics(){
+  const err = failMode ? Math.min(18, errSeries[errSeries.length-1] + Math.random()*4) : Math.max(0.1, 0.4 + (Math.random()-0.5)*0.6);
+  const lat = failMode ? Math.min(60, latSeries[latSeries.length-1] + Math.random()*3) : Math.max(8, 11.8 + (Math.random()-0.5)*3);
+  errSeries.push(err); errSeries.shift();
+  latSeries.push(lat); latSeries.shift();
+
+  document.getElementById('mErr').textContent = err.toFixed(1)+'%';
+  document.getElementById('mErr').className = 'metric-value ' + (err>5?'bad':'good');
+  document.getElementById('mLat').textContent = Math.round(lat*10)+'ms';
+  document.getElementById('mReq').textContent = Math.round(38+Math.random()*10);
+  document.getElementById('mPods').textContent = failMode ? '3/3' : '3/3';
+
+  drawChart();
+}
+
+function drawChart(){
+  const w=600,h=150,pad=6;
+  const maxErr = 20, maxLat = 60;
+  const pts = (series,max)=> series.map((v,i)=>{
+    const x = pad + (i/(N-1))*(w-2*pad);
+    const y = h - pad - (Math.min(v,max)/max)*(h-2*pad);
+    return `${x},${y}`;
+  }).join(' ');
+
+  const thresholdY = h - pad - (5/maxErr)*(h-2*pad);
+
+  chart.innerHTML = `
+    <line x1="${pad}" y1="${thresholdY}" x2="${w-pad}" y2="${thresholdY}" stroke="var(--red)" stroke-dasharray="4 4" stroke-width="1" opacity="0.5"/>
+    <polyline points="${pts(errSeries,maxErr)}" fill="none" stroke="var(--amber)" stroke-width="2"/>
+    <polyline points="${pts(latSeries,maxLat)}" fill="none" stroke="var(--blue)" stroke-width="1.6" opacity="0.8"/>
+  `;
+}
+
+setInterval(tickMetrics, 900);
+tickMetrics();
+
+// seed initial history
+addHistoryRow('a1f9c2e', false);
+log('INFO','tag-info','Dashboard connected — watching helios namespace');
+</script>
+</body>
+</html>

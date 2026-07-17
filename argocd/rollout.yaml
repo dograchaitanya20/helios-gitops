@@ -1,0 +1,53 @@
+# Optional upgrade path: replace k8s/base/deployment.yaml's Deployment with
+# this Rollout (Argo Rollouts CRD) to get canary analysis and automated
+# rollback built in, instead of relying solely on the custom controller
+# in /rollback-controller.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: helios-api
+spec:
+  replicas: 3
+  strategy:
+    canary:
+      steps:
+        - setWeight: 25
+        - pause: { duration: 60s }
+        - analysis:
+            templates:
+              - templateName: success-rate-check
+        - setWeight: 50
+        - pause: { duration: 60s }
+        - setWeight: 100
+  selector:
+    matchLabels:
+      app: helios-api
+  template:
+    metadata:
+      labels:
+        app: helios-api
+    spec:
+      containers:
+        - name: helios-api
+          image: ghcr.io/OWNER/REPO/helios-api:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate-check
+spec:
+  metrics:
+    - name: error-rate
+      interval: 30s
+      count: 3
+      successCondition: result < 0.05   # < 5% error rate to proceed
+      failureLimit: 1                    # 1 bad reading triggers automatic rollback
+      provider:
+        prometheus:
+          address: http://prometheus-server.monitoring.svc.cluster.local:80
+          query: |
+            sum(rate(http_errors_total{app="helios-api"}[1m]))
+            /
+            sum(rate(http_requests_total{app="helios-api"}[1m]))

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: helios-api
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100" # requests/min per IP — basic abuse protection
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.helios.example.com
+      secretName: helios-api-tls
+  rules:
+    - host: api.helios.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: helios-api
+                port:
+                  number: 80

@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rollback-watch
+  namespace: helios
+  annotations:
+    # ArgoCD post-sync hook: runs automatically after every successful sync,
+    # deletes itself before the next run (HookSucceeded) so it doesn't pile up.
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeding
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rollback-controller
+      containers:
+        - name: rollback-watch
+          image: ghcr.io/OWNER/REPO/rollback-controller:latest
+          env:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus-server.monitoring.svc.cluster.local"
+            - name: ARGOCD_SERVER
+              valueFrom:
+                secretKeyRef: { name: argocd-controller-creds, key: server }
+            - name: ARGOCD_TOKEN
+              valueFrom:
+                secretKeyRef: { name: argocd-controller-creds, key: token }
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef: { name: notification-secrets, key: slack-webhook }
+            - name: ERROR_THRESHOLD
+              value: "0.05"
+            - name: WATCH_WINDOW_SECONDS
+              value: "180"

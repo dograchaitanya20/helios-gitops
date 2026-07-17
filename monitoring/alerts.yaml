@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: helios-api-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: helios-api.rules
+      rules:
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(http_errors_total{app="helios-api"}[2m]))
+            /
+            sum(rate(http_requests_total{app="helios-api"}[2m])) > 0.05
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "helios-api error rate above 5%"
+            description: "Error rate has been over 5% for 1m — rollback controller should be reacting to this."
+
+        - alert: HighLatencyP95
+          expr: |
+            histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{app="helios-api"}[5m])) by (le)) > 1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "helios-api p95 latency above 1s"
+
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="helios"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "helios-api pod restarting repeatedly"
