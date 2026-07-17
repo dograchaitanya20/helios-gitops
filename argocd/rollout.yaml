@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: helios-api
-          image: ghcr.io/OWNER/REPO/helios-api:latest
+          image: ghcr.io/dograchaitanya20/helios-gitops/helios-api:latest
           ports:
             - containerPort: 8080
 ---

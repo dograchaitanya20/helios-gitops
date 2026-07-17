@@ -6,5 +6,5 @@ resources:
 patches:
   - path: replica-patch.yaml
 images:
-  - name: ghcr.io/OWNER/REPO/helios-api
+  - name: ghcr.io/dograchaitanya20/helios-gitops/helios-api
     newTag: latest

@@ -16,7 +16,7 @@ spec:
       serviceAccountName: rollback-controller
       containers:
         - name: rollback-watch
-          image: ghcr.io/OWNER/REPO/rollback-controller:latest
+          image: ghcr.io/dograchaitanya20/helios-gitops/rollback-controller:latest
           env:
             - name: PROMETHEUS_URL
               value: "http://prometheus-server.monitoring.svc.cluster.local"

@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/OWNER/helios-gitops.git
+    repoURL: https://github.com/dograchaitanya20/helios-gitops.git
     targetRevision: main
     path: k8s/overlays/production
   destination:
