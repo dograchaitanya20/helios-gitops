@@ -7,4 +7,4 @@ patches:
   - path: replica-patch.yaml
 images:
   - name: ghcr.io/dograchaitanya20/helios-gitops/helios-api
-    newTag: latest
+    newTag: 67de502
