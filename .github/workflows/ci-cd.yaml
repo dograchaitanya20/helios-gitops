@@ -104,6 +104,8 @@ jobs:
   update-manifest:
     needs: build-scan-push
     runs-on: ubuntu-latest
+     permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
